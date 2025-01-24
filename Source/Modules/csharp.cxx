@@ -3793,12 +3793,19 @@ public:
   bool containsCSharpNullableValueType(String* typemap)
   {
     const char* csharp_basic_types[] = {
-        "bool", "byte", "char", "short", "int", "long", "float", "double", "decimal"
+        "sbyte?", "byte?",
+        "short?", "ushort?",
+        "int?", "uint?",
+        "long?", "ulong?",
+        "char?",
+        "float?", "double?",
+        "bool?",
+        "decimal?"
     };
 
     for (size_t i = 0; i < sizeof(csharp_basic_types) / sizeof(csharp_basic_types[0]); ++i)
     {
-      if (Strstr(typemap, csharp_basic_types[i]))
+      if (Strcmp(typemap, csharp_basic_types[i]) == 0)
       {
         return true;
       }
