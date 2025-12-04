@@ -1,7 +1,12 @@
 %module(directors="1") cpp17_optional
-#if defined SWIGCSHARP
+#if defined SWIGCSHARP || defined SWIGLUA
+
 #define SWIG_STD_OPTIONAL_DEFAULT_TYPES
+#if defined SWIGCSHARP
 %include <stdint.i>
+#else
+%include <std_string.i>
+#endif
 %include <std_optional.i>
 
 %optional(test::Struct)
@@ -10,7 +15,10 @@
 %optional(test::Circle)
 %optional(test::Rect)
 
+#if defined SWIGCSHARP
+// Directors are not supported in Lua
 %feature("director") test::TestObjectDirected;
+#endif
 
 %inline %{
 
