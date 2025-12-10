@@ -15,8 +15,8 @@
 %optional(test::Circle)
 %optional(test::Rect)
 
-#if defined SWIGCSHARP
-// Directors are not supported in Lua
+#if defined SWIGCSHARP || defined SWIGLUA
+// Directors are supported in C# and Lua
 %feature("director") test::TestObjectDirected;
 #endif
 

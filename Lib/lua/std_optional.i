@@ -34,8 +34,10 @@
  *   - std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t
  *   - std::string
  *
- * Note: Lua does not support directors, so director-related typemaps are not
- * implemented.
+ * Director support:
+ * Director typemaps (directorin, directorout) are provided for all optional
+ * types, allowing C++ virtual methods with std::optional parameters to be
+ * overridden in Lua.
  *
  * ----------------------------------------------------------------------------- */
 
@@ -126,6 +128,54 @@ namespace std {
   }
 }
 
+// Director typemaps for std::optional<TYPE>
+%typemap(directorin) std::optional< TYPE >
+%{
+  if ($1.has_value()) {
+    TYPE * resultptr = new TYPE($1.value());
+    SWIG_NewPointerObj(L, resultptr, $descriptor(TYPE *), SWIG_POINTER_OWN);
+  } else {
+    lua_pushnil(L);
+  }
+%}
+
+%typemap(directorin) std::optional< TYPE > const &
+%{
+  if ($1.has_value()) {
+    TYPE * resultptr = new TYPE($1.value());
+    SWIG_NewPointerObj(L, resultptr, $descriptor(TYPE *), SWIG_POINTER_OWN);
+  } else {
+    lua_pushnil(L);
+  }
+%}
+
+%typemap(directorout) std::optional< TYPE > (void *argp = 0, int res = 0)
+%{
+  if (lua_isnil(L, $input)) {
+    $result = std::nullopt;
+  } else {
+    res = SWIG_ConvertPtr(L, $input, &argp, $descriptor(TYPE *), 0);
+    if (!SWIG_IsOK(res)) {
+      Swig::DirectorTypeMismatchException::raise(L, "Failed to convert return value to " "$type");
+    }
+    $result = *reinterpret_cast<TYPE *>(argp);
+  }
+%}
+
+%typemap(directorout) std::optional< TYPE > const & (std::optional< TYPE > temp, void *argp = 0, int res = 0)
+%{
+  if (lua_isnil(L, $input)) {
+    temp = std::nullopt;
+  } else {
+    res = SWIG_ConvertPtr(L, $input, &argp, $descriptor(TYPE *), 0);
+    if (!SWIG_IsOK(res)) {
+      Swig::DirectorTypeMismatchException::raise(L, "Failed to convert return value to " "$type");
+    }
+    temp = *reinterpret_cast<TYPE *>(argp);
+  }
+  $result = &temp;
+%}
+
 %enddef
 
 // ----------------------------------------------------------------------------
@@ -188,6 +238,52 @@ namespace std {
 %typemap(typecheck, precedence=SWIG_TYPECHECK_DOUBLE) std::optional< TYPE >, std::optional< TYPE > const & {
   $1 = lua_isnil(L, $input) || lua_isnumber(L, $input) || lua_isboolean(L, $input);
 }
+
+// Director typemaps for arithmetic std::optional<TYPE>
+%typemap(directorin) std::optional< TYPE >
+%{
+  if ($1.has_value()) {
+    lua_pushnumber(L, (lua_Number)$1.value());
+  } else {
+    lua_pushnil(L);
+  }
+%}
+
+%typemap(directorin) std::optional< TYPE > const &
+%{
+  if ($1.has_value()) {
+    lua_pushnumber(L, (lua_Number)$1.value());
+  } else {
+    lua_pushnil(L);
+  }
+%}
+
+%typemap(directorout) std::optional< TYPE >
+%{
+  if (lua_isnil(L, $input)) {
+    $result = std::nullopt;
+  } else if (lua_isnumber(L, $input)) {
+    $result = (TYPE)lua_tonumber(L, $input);
+  } else if (lua_isboolean(L, $input)) {
+    $result = (TYPE)lua_toboolean(L, $input);
+  } else {
+    Swig::DirectorTypeMismatchException::raise(L, "Failed to convert return value to optional arithmetic type");
+  }
+%}
+
+%typemap(directorout) std::optional< TYPE > const & (std::optional< TYPE > temp)
+%{
+  if (lua_isnil(L, $input)) {
+    temp = std::nullopt;
+  } else if (lua_isnumber(L, $input)) {
+    temp = (TYPE)lua_tonumber(L, $input);
+  } else if (lua_isboolean(L, $input)) {
+    temp = (TYPE)lua_toboolean(L, $input);
+  } else {
+    Swig::DirectorTypeMismatchException::raise(L, "Failed to convert return value to optional arithmetic type");
+  }
+  $result = &temp;
+%}
 
 %enddef
 
@@ -261,6 +357,52 @@ namespace std {
   $1 = lua_isnil(L, $input) || lua_isboolean(L, $input) || lua_isnumber(L, $input);
 }
 
+// Director typemaps for std::optional<bool>
+%typemap(directorin) std::optional< bool >
+%{
+  if ($1.has_value()) {
+    lua_pushboolean(L, (int)$1.value());
+  } else {
+    lua_pushnil(L);
+  }
+%}
+
+%typemap(directorin) std::optional< bool > const &
+%{
+  if ($1.has_value()) {
+    lua_pushboolean(L, (int)$1.value());
+  } else {
+    lua_pushnil(L);
+  }
+%}
+
+%typemap(directorout) std::optional< bool >
+%{
+  if (lua_isnil(L, $input)) {
+    $result = std::nullopt;
+  } else if (lua_isboolean(L, $input)) {
+    $result = (bool)lua_toboolean(L, $input);
+  } else if (lua_isnumber(L, $input)) {
+    $result = (bool)lua_tonumber(L, $input);
+  } else {
+    Swig::DirectorTypeMismatchException::raise(L, "Failed to convert return value to optional bool");
+  }
+%}
+
+%typemap(directorout) std::optional< bool > const & (std::optional< bool > temp)
+%{
+  if (lua_isnil(L, $input)) {
+    temp = std::nullopt;
+  } else if (lua_isboolean(L, $input)) {
+    temp = (bool)lua_toboolean(L, $input);
+  } else if (lua_isnumber(L, $input)) {
+    temp = (bool)lua_tonumber(L, $input);
+  } else {
+    Swig::DirectorTypeMismatchException::raise(L, "Failed to convert return value to optional bool");
+  }
+  $result = &temp;
+%}
+
 %enddef
 
 // ----------------------------------------------------------------------------
@@ -323,6 +465,52 @@ namespace std {
 %typemap(typecheck, precedence=SWIG_TYPECHECK_STRING) std::optional< std::string >, std::optional< std::string > const & {
   $1 = lua_isnil(L, $input) || lua_isstring(L, $input);
 }
+
+// Director typemaps for std::optional<std::string>
+%typemap(directorin) std::optional< std::string >
+%{
+  if ($1.has_value()) {
+    lua_pushlstring(L, $1.value().data(), $1.value().size());
+  } else {
+    lua_pushnil(L);
+  }
+%}
+
+%typemap(directorin) std::optional< std::string > const &
+%{
+  if ($1.has_value()) {
+    lua_pushlstring(L, $1.value().data(), $1.value().size());
+  } else {
+    lua_pushnil(L);
+  }
+%}
+
+%typemap(directorout) std::optional< std::string >
+%{
+  if (lua_isnil(L, $input)) {
+    $result = std::nullopt;
+  } else if (lua_isstring(L, $input)) {
+    size_t len;
+    const char *ptr = lua_tolstring(L, $input, &len);
+    $result = std::string(ptr, len);
+  } else {
+    Swig::DirectorTypeMismatchException::raise(L, "Failed to convert return value to optional std::string");
+  }
+%}
+
+%typemap(directorout) std::optional< std::string > const & (std::optional< std::string > temp)
+%{
+  if (lua_isnil(L, $input)) {
+    temp = std::nullopt;
+  } else if (lua_isstring(L, $input)) {
+    size_t len;
+    const char *ptr = lua_tolstring(L, $input, &len);
+    temp = std::string(ptr, len);
+  } else {
+    Swig::DirectorTypeMismatchException::raise(L, "Failed to convert return value to optional std::string");
+  }
+  $result = &temp;
+%}
 
 %enddef
 

@@ -147,3 +147,93 @@ do
 	local cOpt = obj:getCircleOpt()
 	assert(cOpt ~= nil, "TestObjectCustom.getCircleOpt() should not return nil")
 end
+
+-- Test TestObjectDirected class with director support
+do
+	print("Testing director support for std::optional...")
+
+	-- Test base class without overrides
+	local baseObj = mod.TestObjectDirected()
+
+	-- Test with nil optional (no value)
+	local result = baseObj:doValueOptionalChanged(nil)
+	assert(result == "", "Base doValueOptionalChanged(nil) should return empty string")
+
+	result = baseObj:doReferenceOptionalChanged(nil)
+	assert(result == "", "Base doReferenceOptionalChanged(nil) should return empty string")
+
+	-- Test with value
+	result = baseObj:doValueOptionalChanged(42)
+	assert(result == "", "Base doValueOptionalChanged(42) should return empty string")
+
+	result = baseObj:doReferenceOptionalChanged(123)
+	assert(result == "", "Base doReferenceOptionalChanged(123) should return empty string")
+
+	-- Test with Lua override
+	local derivedObj = mod.TestObjectDirected()
+
+	-- Override onValueOptionalChanged
+	swig_override(derivedObj, "onValueOptionalChanged", function(self, value)
+		if value == nil then
+			return "Lua: value is nil"
+		else
+			return string.format("Lua: value is %d", value)
+		end
+	end)
+
+	result = derivedObj:doValueOptionalChanged(nil)
+	assert(result == "Lua: value is nil", "Derived doValueOptionalChanged(nil) failed, got: " .. result)
+
+	result = derivedObj:doValueOptionalChanged(42)
+	assert(result == "Lua: value is 42", "Derived doValueOptionalChanged(42) failed, got: " .. result)
+
+	-- Override onReferenceOptionalChanged
+	swig_override(derivedObj, "onReferenceOptionalChanged", function(self, reference)
+		if reference == nil then
+			return "Lua ref: nil"
+		else
+			return string.format("Lua ref: %d", reference)
+		end
+	end)
+
+	result = derivedObj:doReferenceOptionalChanged(nil)
+	assert(result == "Lua ref: nil", "Derived doReferenceOptionalChanged(nil) failed, got: " .. result)
+
+	result = derivedObj:doReferenceOptionalChanged(999)
+	assert(result == "Lua ref: 999", "Derived doReferenceOptionalChanged(999) failed, got: " .. result)
+
+	-- Test class reference optional (Rect)
+	local derivedObj2 = mod.TestObjectDirected()
+	swig_override(derivedObj2, "onClassReferenceOptionalChanged", function(self, rectOpt)
+		if rectOpt == nil then
+			return "Lua: rect is nil"
+		else
+			return "Lua: rect area=" .. tostring(rectOpt:area())
+		end
+	end)
+
+	result = derivedObj2:doClassReferenceOptionalChanged(nil)
+	assert(result == "Lua: rect is nil", "Derived doClassReferenceOptionalChanged(nil) failed, got: " .. result)
+
+	local rect = mod.Rect(3.0, 4.0)
+	result = derivedObj2:doClassReferenceOptionalChanged(rect)
+	assert(result == "Lua: rect area=12.0", "Derived doClassReferenceOptionalChanged(rect) failed, got: " .. result)
+
+	-- Test string reference optional
+	local derivedObj3 = mod.TestObjectDirected()
+	swig_override(derivedObj3, "onStringReferenceOptionalChanged", function(self, strOpt)
+		if strOpt == nil then
+			return "Lua: string is nil"
+		else
+			return "Lua: string=" .. strOpt
+		end
+	end)
+
+	result = derivedObj3:doStringReferenceOptionalChanged(nil)
+	assert(result == "Lua: string is nil", "Derived doStringReferenceOptionalChanged(nil) failed, got: " .. result)
+
+	result = derivedObj3:doStringReferenceOptionalChanged("hello")
+	assert(result == "Lua: string=hello", "Derived doStringReferenceOptionalChanged('hello') failed, got: " .. result)
+
+	print("Director tests passed!")
+end
