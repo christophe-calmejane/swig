@@ -1,8 +1,9 @@
 %module(directors="1") cpp17_optional
-#if defined SWIGCSHARP
+#if defined SWIGCSHARP || defined SWIGLUA
 //#define SWIG_STD_OPTIONAL_USE_NULLABLE_REFERENCE_TYPES // Enable this to use nullable reference types for optional class types in C# (requires C# 8.0 or later). Not supported by the CI
 #define SWIG_STD_OPTIONAL_DEFAULT_TYPES
 %include <stdint.i>
+%include <std_string.i>
 %include <std_optional.i>
 
 %optional(test::Struct)
